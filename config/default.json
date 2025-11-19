@@ -1,0 +1,17 @@
+{
+  "env": {
+    "type": "graph",
+    "graph_file": "data/graphs/toy_graph.json"
+  },
+  "agent": {
+    "type": "random"
+  },
+  "runner": {
+    "episodes": 10,
+    "max_steps": 100
+  },
+  "log": {
+    "output_dir": "results",
+    "level": "INFO"
+  }
+}
