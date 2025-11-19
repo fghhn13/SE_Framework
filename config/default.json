@@ -1,17 +1,14 @@
 {
-  "env": {
-    "type": "graph",
-    "graph_file": "data/graphs/toy_graph.json"
-  },
-  "agent": {
-    "type": "random"
-  },
-  "runner": {
-    "episodes": 200,
-    "max_steps": 100
-  },
-  "log": {
-    "output_dir": "results",
-    "level": "INFO"
-  }
+  "episodes": 200,
+  "max_steps": 100,
+  "random_seed": 42,
+  "output_dir": "results",
+  "graph_file": "data/graphs/toy_graph.json",
+  "start_node": "A",
+  "goal_node": "F",
+  "explore_prob": 0.15,
+  "macro_threshold": 3,
+  "decay_rate": 0.95,
+  "macro_prune_threshold": 1.5,
+  "failure_penalty": 5.0
 }
