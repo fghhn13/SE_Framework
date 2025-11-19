@@ -1,160 +1,91 @@
-# 核心方向: 结构涌现框架 (Structure Emergence Framework)
+# StructGenesis: 结构涌现框架 (Structure Emergence Framework)
 
-> **核心哲学**: 只有机制 (Mechanism) 和环境 (Environment)，让程序自己产生结构 (Structure)。
+> **核心哲学**: 只有机制 (Mechanism) 和环境 (Environment)，让程序自己写出结构 (Structure)。
 
-## 1. 项目愿景 (Vision)
+## 1. 项目简介
+本项目构建了一个“从交互中涌现结构”的实验框架。Agent 在图环境 (Graph Environment) 中探索，通过记忆 (Memory) 积累经验，自动发现高频模式 (Macro)，从而从“随机游走”进化为“高效执行”。
 
-本项目旨在构建一个**“从交互中涌现结构”**的实验框架。
-我们不预设复杂的逻辑结构（如硬编码的宏、策略树），而是通过 Agent 在 Environment 中的反复交互，利用**记忆 (Memory)** 和 **发现机制 (Discovery)**，自动沉淀出高效的**结构 (Structure)**。
+**✨ 核心特性：**
+* **策略插拔**: 支持多种 Agent 策略 (Random / Macro) 对比实验。
+* **结构涌现**: Agent 自动从经验中挖掘 Macro，无需人工规则。
+* **持久化记忆**: 支持存档/读档 (Save/Load)，实现长期训练与断点续传。
+* **数据可视化**: 内置绘图工具，一键生成 Cost/Success/Structure 变化曲线。
 
-**核心三轴：**
-1.  **Environment (环境)**: 抽象的世界，只负责反馈状态、边界和代价。
-2.  **Mechanism (机制/Agent)**: 可插拔的策略，负责探索和利用。
-3.  **Structure (结构)**: 从经验中“长”出来的数据（如 Macro、Options、Sub-routines），用于加速未来的决策。
-
-## 2. 目录结构 (Project Structure)
-
-本项目遵循 **“核心依赖倒置”** 与 **“模块职责分离”** 原则，确保未来扩展时无需重构核心逻辑。
+## 2. 目录结构
 
 ```text
 project_root/
-├── config/                 # 外部配置文件
-│   ├── default.json        # 默认实验配置
-│   └── complex_graph.json  # 复杂场景配置
-├── data/                   # 数据存储
-│   └── graphs/             # 图结构定义 (World maps)
-├── src/                    # 源代码
-│   ├── core/               # [底层] 通用类型与配置加载
-│   │   ├── config.py
-│   │   └── types.py
-│   ├── envs/               # [环境] 各种世界的实现 (Graph, GridWorld...)
-│   │   ├── base.py         # 抽象接口
-│   │   └── graph_env.py
-│   ├── memory/             # [记忆] 记录原始经验
-│   │   └── path_memory.py
-│   ├── structure/          # [结构] 存储与发现算法 (的核心)
-│   │   ├── macro.py        # 宏定义
-│   │   └── discovery.py    # 结构挖掘算法
-│   ├── agents/             # [机制] 各种策略 Agent
-│   │   ├── base.py         # 抽象接口
-│   │   ├── random_agent.py
-│   │   └── macro_agent.py
-│   ├── runner/             # [流程] 实验流控制
-│   │   ├── episode_runner.py
-│   │   └── experiment.py
-│   └── io/                 # [工具] 日志与导出
-│       ├── logger.py
-│       └── exporters.py
-├── scripts/                # 启动脚本
-│   └── run_experiment.py
-├── results/                # 实验输出产物
+├── config/                 # 全局配置
+├── data/                   
+│   ├── graphs/             # 地图文件 (e.g., 0001.json)
+│   └── agents/             # Agent 存档 (包含记忆、宏和训练日志)
+├── src/                    # 核心代码
+│   ├── envs/               # 环境定义
+│   ├── agents/             # 策略实现 (Factory, Random, Macro)
+│   ├── memory/             # 记忆模块
+│   ├── structure/          # 结构挖掘
+│   └── io/                 # 日志与数据记录
+├── scripts/                # 工具脚本
+│   ├── run_experiment.py   # 实验入口
+│   └── visualize.py        # 可视化工具
 └── README.md
-```
+````
 
-## 3. 模块指引 (Module Guide)
+## 3. 快速开始 (Quick Start)
 
-|**模块**|**职责 (Responsibility)**|**依赖原则 (Dependency Rule)**|
-|---|---|---|
-|**core**|定义通用的数据类型 (Node, Path) 和 Config 对象。|不依赖任何其他模块。|
-|**envs**|定义 Agent 存在的“物理法则”。只管 State 和 Transition。|依赖 `core`。|
-|**memory**|忠实记录发生了什么 (Raw Experience)。|依赖 `core`。|
-|**structure**|**项目的灵魂**。定义如何从 Raw Experience 中提取 Pattern。|依赖 `core`。|
-|**agents**|决策的大脑。根据 Environment 和 Structure 决定动作。|依赖 `core`, `structure` (读取), `memory` (写入)。|
-|**runner**|上帝视角。组装 Env 和 Agent，驱动时间流逝。|依赖所有模块。|
+### 🚀 启动实验
 
-## 4. 快速开始 (Quick Start)
+使用 `scripts/run_experiment.py` 启动。
 
-### 环境准备
-
-建议使用 Python 3.9+
+**1. 训练智能 Agent (默认)**
 
 Bash
 
 ```
-# 安装依赖 
-pip install -r requirements.txt
+# 在 0001 号地图上训练名为 "Hero_01" 的 Agent
+python scripts/run_experiment.py --map 0001 --agent Hero_01 --type macro
 ```
 
-### 运行实验
+**2. 运行对照组 (笨蛋 Agent)**
 
 Bash
 
 ```
-# 默认运行
-python scripts/run_experiment.py
-
-# 指定配置文件 (TBD)
-python scripts/run_experiment.py --config config/complex_graph.json
+# 使用随机策略，不利用记忆
+python scripts/run_experiment.py --map 0001 --agent Dummy_01 --type random
 ```
 
-## 5. 开发路线 (Roadmap)
-
-- [ ] **Phase 1: 骨架搭建** (Current)
-    
-    - [ ] 目录结构设计
-        
-    - [ ] `core`: 类型系统与配置
-        
-    - [ ] `envs`: 基础图环境实现
-        
-    - [ ] `agents`: 随机游走 Agent
-        
-- [ ] **Phase 2: 记忆与重放**
-    
-    - [ ] `memory`: 路径统计
-        
-    - [ ] `agents`: 基于记忆的最优路径重放
-        
-- [ ] **Phase 3: 结构涌现**
-    
-    - [ ] `structure`: 简单的宏 (Macro) 发现算法
-        
-    - [ ] `agents`: 会使用宏的 Agent
-        
-- [ ] **Phase 4: 演化**
-    
-    - [ ] 引入更复杂的结构形式 (Options / Sub-goals)
-        
-    - [ ] 引入环境变化，测试结构的鲁棒性
-        
-
----
-### 核心指令
-
-使用 `scripts/run_experiment.py` 启动实验。
-
-**1. 基础运行** (默认地图 0000，默认 Agent)
+**3. 强制指定训练次数**
 
 Bash
 
 ```
-python scripts/run_experiment.py
+# 无论 Config 怎么写，强行跑 1000 集
+python scripts/run_experiment.py --map 0001 --agent Hero_01 --episodes 1000
 ```
 
-**2. 指定地图与 Agent** (推荐)
+### 📊 数据可视化
+
+训练完成后，使用 `scripts/visualize.py` 生成图表。
 
 Bash
 
 ```
-# 在 0001 号地图上训练名为 "proto_unit_01" 的 Agent
-python scripts/run_experiment.py --map 0001 --agent proto_unit_01
+# 生成 Hero_01 的训练曲线
+python scripts/visualize.py --agent Hero_01 --window 50
 ```
 
-**3. 覆盖训练次数**
-
-Bash
-
-```
-# 强行训练 1000 集
-python scripts/run_experiment.py --map 0001 --agent proto_unit_01 --episodes 1000
-```
+> 图片将保存在 `data/agents/Hero_01/training_plot.png`
 
 ## 4. 模块说明
 
 |**模块**|**功能**|
 |---|---|
-|`src.envs`|**环境层**: 提供标准化的图环境接口 (Reset/Step)。|
-|`src.agents`|**决策层**: `MacroAgent` 优先使用宏，无宏时随机探索。|
-|`src.memory`|**记忆层**: `PathMemory` 忠实记录所有历史路径。|
-|`src.structure`|**结构层**: `MacroStore` 存储挖掘出的模式；`Discovery` 负责从记忆中提炼宏。|
-|`src.runner`|**控制层**: 管理实验流程、数据流转与自动存档。|
+|`src.agents`|**决策层**: `AgentFactory` 负责生产 Agent。`MacroAgent` 会用宏，`RandomAgent` 只会瞎跑。|
+|`src.structure`|**结构层**: `MacroDiscovery` 负责从 `PathMemory` 中提炼高频路径。|
+|`src.runner`|**控制层**: 管理实验流程，自动处理 CSV 日志记录与断点续传。|
+
+---
+
+_Designed with 🧠 & ☕_
+
