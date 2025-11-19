@@ -29,9 +29,13 @@ class Config:
     # ==========================
     # 3. Agent 与 结构参数
     # ==========================
-    explore_prob: float = 0.1  # 随机探索概率 (epsilon)
-    macro_threshold: int = 5  # 结构涌现阈值：路径重复多少次后变成 Macro
-
+    explore_prob: float = 0.25  # 随机探索概率 (epsilon)
+    macro_threshold: int = 3  # 结构涌现阈值：路径重复多少次后变成 Macro
+    # 4. 遗忘与适应 (Forgetting)
+    # ==========================
+    decay_rate: float = 0.99  # 每一集结束，所有宏的 Count 乘以这个系数 (自然遗忘)
+    macro_prune_threshold: float = 1.0  # 如果宏的 Count 低于这个值，直接删除 (清理垃圾)
+    failure_penalty: float = 5.0  # 如果宏执行失败，Count 扣除多少 (主动惩罚)
     @classmethod
     def from_json(cls, json_path: str) -> 'Config':
         """

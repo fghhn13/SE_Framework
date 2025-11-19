@@ -107,8 +107,13 @@ class ExperimentRunner:
                 # 3. 触发结构发现
                 self.discovery.discover(self.memory, self.macro_store)
                 current_macro_count = len(self.macro_store.get_all())
-
-                # 4. 记录日志 (使用累加后的序号)
+                # 4. --- 新增：触发遗忘机制 ---
+                # 让所有宏自然衰减，并清理掉太弱的
+                self.macro_store.decay_and_prune(
+                    decay_rate=self.config.decay_rate,
+                    prune_threshold=self.config.macro_prune_threshold
+                )
+                # 5. 记录日志 (使用累加后的序号)
                 self.logger.log_episode(
                     episode=current_ep_num,
                     success=result["success"],
@@ -117,7 +122,7 @@ class ExperimentRunner:
                     macro_count=current_macro_count
                 )
 
-                # 5. 打印日志
+                # 6. 打印日志
                 if ep % 10 == 0 or (result["success"] and ep < 5):
                     # 打印时显示真实的全局 Episode ID
                     print(

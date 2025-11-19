@@ -40,6 +40,7 @@ class MacroAgent(Agent):
                 # 当前在 'A'。我们需要依次执行 A->B, B->C
 
                 macro_path = selected_macro.path
+                macro_failed = False #标记一下失败
                 # 从索引 1 开始，因为索引 0 是当前位置
                 for next_node_in_macro in macro_path[1:]:
 
@@ -47,10 +48,10 @@ class MacroAgent(Agent):
                     # (防止环境变了宏还没更新的情况)
                     valid_actions = env.get_actions(state)
                     if next_node_in_macro not in valid_actions:
-                        # 宏失效了！中断执行，退化为单步
-                        break
+                        macro_failed = True
+                        break  # 中断
 
-                    # 执行宏里的一步
+                        # 执行
                     result = env.step(state, next_node_in_macro)
 
                     state = result.next_state
@@ -61,6 +62,14 @@ class MacroAgent(Agent):
                     if result.done:
                         success = True
                         break
+                if macro_failed:
+                    # 告诉 StructureStore 惩罚这个宏
+                    self.structure_store.punish(selected_macro.path, self.config.failure_penalty)
+                    # 可以在这里 break 出去，也可以选择 fallback 到随机继续走
+                    # 这里我们选择继续走（fallback 到下一次循环的随机逻辑）
+
+                if success:
+                    break
 
                 if success:
                     break

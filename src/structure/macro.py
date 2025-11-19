@@ -14,7 +14,7 @@ class Macro:
     """
     path: Path  # 宏包含的节点序列 [Start, ..., End]
     avg_cost: Cost  # 这条宏的平均代价
-    count: int  # 被发现/使用的次数 (置信度)
+    count: float  # 被发现/使用的次数 (置信度)
 
     @property
     def start_node(self) -> NodeID:
@@ -63,7 +63,7 @@ class MacroStore:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
 
-    # --- 新增：读档功能 ---
+    # --- 读档功能 ---
     def load(self, filepath: str):
         if not os.path.exists(filepath):
             return
@@ -73,3 +73,35 @@ class MacroStore:
 
         self.macros = [Macro(**item) for item in raw_data]
         print(f"[Structure] Loaded {len(self.macros)} macros.")
+
+        # --- 新增：惩罚机制 ---
+        def punish(self, macro_path: Path, penalty: float):
+            """
+            当宏执行失败时调用。大幅降低其置信度。
+            """
+            for m in self.macros:
+                if m.path == macro_path:
+                    m.count = max(0.0, m.count - penalty)
+                    print(f"📉 Macro Punished! {m.path} -> Count: {m.count:.2f}")
+                    return
+
+        # --- 新增：衰减与清理机制 ---
+        def decay_and_prune(self, decay_rate: float, prune_threshold: float):
+            """
+            每一集结束调用。
+            1. 所有宏的 count * decay_rate
+            2. 移除 count < threshold 的宏
+            """
+            # 1. 衰减
+            for m in self.macros:
+                m.count *= decay_rate
+
+            # 2. 统计之前的数量
+            before_count = len(self.macros)
+
+            # 3. 剔除弱者 (保留 count >= 阈值的)
+            self.macros = [m for m in self.macros if m.count >= prune_threshold]
+
+            removed_count = before_count - len(self.macros)
+            if removed_count > 0:
+                print(f"♻️  Forgot {removed_count} obsolete macros.")
