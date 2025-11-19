@@ -39,10 +39,10 @@ class MacroStore:
         # 简单查重：如果完全一样的路径已经存在，就更新数据
         for m in self.macros:
             if m.path == macro.path:
-                m.count = macro.count
+                m.count = min(20.0, m.count + 1)
                 m.avg_cost = macro.avg_cost
                 return
-
+        macro.count = min(20.0, macro.count)
         self.macros.append(macro)
         print(f"[MacroStore] New structure discovered: {macro.path} (Cost: {macro.avg_cost:.2f})")
 
