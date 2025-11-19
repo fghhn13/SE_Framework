@@ -16,25 +16,34 @@ class ExperimentRunner:
     负责组装所有组件，并执行主循环。
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, agent_id: str = "default_agent"):
         self.config = config
+        self.agent_id = agent_id
 
-        # 1. 准备基础设施
+        # 1. 准备环境
+        # (这里假设你之前的 _load_graph 方法还在，为了节省篇幅省略细节)
         self.graph_data = self._load_graph(config.graph_file)
-        self.env = GraphEnvironment(
-            graph=self.graph_data,
-            start=config.start_node,
-            goal=config.goal_node
-        )
+        self.env = GraphEnvironment(self.graph_data, config.start_node, config.goal_node)
 
         # 2. 准备大脑组件
         self.memory = PathMemory()
         self.macro_store = MacroStore()
         self.discovery = MacroDiscovery(config)
 
+        # --- 关键：确定存档路径 ---
+        # data/agents/{agent_id}/
+        self.agent_dir = os.path.join("data", "agents", self.agent_id)
+        os.makedirs(self.agent_dir, exist_ok=True)
+
+        self.memory_file = os.path.join(self.agent_dir, "memory.json")
+        self.macro_file = os.path.join(self.agent_dir, "macros.json")
+
+        # --- 关键：加载旧档 ---
+        print(f"📂 Agent Profile: {self.agent_id}")
+        self.memory.load(self.memory_file)
+        self.macro_store.load(self.macro_file)
+
         # 3. 初始化 Agent
-        # 这里我们演示：先用 RandomAgent 跑，或者直接用 MacroAgent
-        # 为了体现"结构利用"，我们直接上 MacroAgent (它在没结构时会 fallback 到随机)
         self.agent = MacroAgent(config, self.memory, self.macro_store)
 
     def _load_graph(self, path: str) -> GraphData:
@@ -55,36 +64,52 @@ class ExperimentRunner:
         return graph
 
     def run(self):
-        """主循环"""
         print(f"🚀 Experiment Start! Episodes: {self.config.episodes}")
-        print(f"🗺️  Map: {self.config.graph_file}")
+        print(f"📂 Agent: {self.agent_id}")
         print("-" * 40)
 
-        for ep in range(1, self.config.episodes + 1):
-            # --- A. 跑一集 ---
-            result = self.agent.run_episode(self.env)
+        try:
+            # --- 主循环开始 ---
+            for ep in range(1, self.config.episodes + 1):
+                # 1. 跑一集
+                result = self.agent.run_episode(self.env)
 
-            # --- B. 记入记忆 ---
-            self.memory.add_episode(
-                path=result["path"],
-                cost=result["cost"],
-                success=result["success"]
-            )
+                # 2. 记入记忆
+                self.memory.add_episode(
+                    path=result["path"],
+                    cost=result["cost"],
+                    success=result["success"]
+                )
 
-            # --- C. 触发结构发现 ---
-            # (可以在每集后触发，也可以每 N 集触发一次)
-            self.discovery.discover(self.memory, self.macro_store)
+                # 3. 触发结构发现
+                self.discovery.discover(self.memory, self.macro_store)
 
-            # --- D. 简单的日志输出 ---
-            # 每 10 集打印一次，或者打印发现了宏的时候
-            if ep % 10 == 0 or result["success"]:
-                status = "✅" if result["success"] else "❌"
-                macros_count = len(self.macro_store.get_all())
-                print(
-                    f"Ep {ep:03d} | {status} Cost: {result['cost']:.1f} | Steps: {result['steps']} | Macros: {macros_count}")
+                # 4. 打印日志
+                if ep % 10 == 0 or (result["success"] and ep < 5):
+                    macros_count = len(self.macro_store.get_all())
+                    print(
+                        f"Ep {ep:03d} | Cost: {result['cost']:.1f} | Steps: {result['steps']} | Macros: {macros_count}")
+            # --- 主循环结束 ---
 
-        self._print_summary()
+        except KeyboardInterrupt:
+            # 如果你在终端按了 Ctrl+C，会跳到这里
+            print("\n⚠️  Experiment interrupted by user! Stopping...")
 
+        except Exception as e:
+            # 捕获其他意外报错
+            print(f"\n❌ Unexpected Error: {e}")
+            import traceback
+            traceback.print_exc()
+
+        finally:
+
+            print("\n" + "=" * 40)
+            print("💾 Saving Agent State...")
+            self.memory.save(self.memory_file)
+            self.macro_store.save(self.macro_file)
+            print(f"   -> Saved to {self.agent_dir}")
+
+            self._print_summary()
     def _print_summary(self):
         print("\n" + "=" * 40)
         print("📊 Experiment Summary")

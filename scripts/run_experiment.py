@@ -1,14 +1,12 @@
 import sys
 import os
+import argparse
 
 # ==========================================
 # 路径黑魔法 (Path Magic) 🧙‍♀️
 # ==========================================
-# 获取当前脚本所在的目录 (scripts/)
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# 获取项目根目录 (project_root/)
 project_root = os.path.dirname(current_dir)
-# 将项目根目录加入 Python 的搜索路径
 if project_root not in sys.path:
     sys.path.append(project_root)
 
@@ -20,33 +18,52 @@ from src.runner.experiment import ExperimentRunner
 
 
 def main():
-    # 1. 确定配置文件路径
-    # 假设默认配置文件在 config/default.json
-    config_path = os.path.join(project_root, "config", "default.json")
+    # 1. 解析命令行参数
+    parser = argparse.ArgumentParser(description="StructGenesis Experiment Runner")
+    parser.add_argument(
+        "--map",
+        type=str,
+        default="0000",
+        help="The 4-digit Map ID to run (e.g., 0001). Default is 0000."
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        help="Override episode count in config."
+    )
+    args = parser.parse_args()
 
-    # 2. 加载配置
-    # 如果文件不存在，Config 类会自动使用默认值
+    # 2. 构造地图路径
+    # 确保 ID 是 4 位数 (比如输入 1 会变成 0001)
+    map_id = args.map.zfill(4)
+    map_filename = f"{map_id}.json"
+    map_path = os.path.join(project_root, "data", "graphs", map_filename)
+
+    # 3. 加载基础配置
+    config_path = os.path.join(project_root, "config", "default.json")
     config = Config.from_json(config_path)
 
-    # --- 临时修正路径 ---
-    # 为了防止路径写死导致找不到文件，我们在这里强制把 graph_file
-    # 指向项目根目录下的 data/graphs/toy_graph.json
-    # (这样你不用去改 config json 也能跑)
-    target_graph_file = os.path.join(project_root, "data", "graphs", "toy_graph.json")
-    config.graph_file = target_graph_file
+    # 4. 动态覆盖配置
+    print(f"🎯 Target Map: {map_filename}")
 
-    # 确保数据目录存在 (贴心小助手)
-    os.makedirs(os.path.dirname(target_graph_file), exist_ok=True)
+    if not os.path.exists(map_path):
+        print(f"❌ Error: Map file not found: {map_path}")
+        print(f"   (Please ask AI to generate '{map_filename}' and put it in data/graphs/)")
+        return
+
+    config.graph_file = map_path
+
+    # 如果命令行指定了 episode 数量，覆盖 config 里的
+    if args.episodes:
+        config.episodes = args.episodes
 
     print(f"🔧 Config loaded. Episodes: {config.episodes}")
 
-    # 3. 启动实验
+    # 5. 启动实验
     try:
         runner = ExperimentRunner(config)
         runner.run()
-    except FileNotFoundError as e:
-        print(f"\n❌ Error: {e}")
-        print("   (Tip: Did you create the graph JSON file yet?)")
     except Exception as e:
         print(f"\n❌ Unexpected Error: {e}")
         import traceback

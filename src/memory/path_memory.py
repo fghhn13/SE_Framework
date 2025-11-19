@@ -1,3 +1,5 @@
+import  os
+import json
 from collections import defaultdict
 from typing import List, Dict, Any, Tuple
 from src.core.types import Path, Cost
@@ -41,6 +43,35 @@ class PathMemory:
         结构发现模块 (Discovery) 会调用这个接口来挖掘模式。
         """
         return self.path_stats
+
+    def save(self, filepath: str):
+        """将记忆保存到 JSON 文件"""
+        # 因为 tuple 不能作为 json 的 key，我们转换成列表存储
+        data_to_save = []
+        for path_tuple, stats in self.path_stats.items():
+            data_to_save.append({
+                "path": list(path_tuple),
+                "stats": stats
+            })
+
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data_to_save, f, indent=2)
+
+    # --- 新增：读档功能 ---
+    def load(self, filepath: str):
+        """从 JSON 文件加载记忆"""
+        if not os.path.exists(filepath):
+            return
+
+        with open(filepath, 'r', encoding='utf-8') as f:
+            raw_data = json.load(f)
+
+        self.path_stats.clear()
+        for item in raw_data:
+            path_tuple = tuple(item["path"])
+            # 恢复 defaultdict 的特性
+            self.path_stats[path_tuple].update(item["stats"])
+        print(f"[Memory] Loaded {len(self.path_stats)} path records.")
 
     def get_best_path(self) -> Path:
         """

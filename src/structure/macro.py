@@ -1,4 +1,6 @@
-from dataclasses import dataclass, field
+import json
+import os
+from dataclasses import dataclass, asdict
 from typing import List
 from src.core.types import Path, NodeID, Cost
 
@@ -55,3 +57,19 @@ class MacroStore:
 
     def get_all(self) -> List[Macro]:
         return self.macros
+
+    def save(self, filepath: str):
+        data = [asdict(m) for m in self.macros]
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
+    # --- 新增：读档功能 ---
+    def load(self, filepath: str):
+        if not os.path.exists(filepath):
+            return
+
+        with open(filepath, 'r', encoding='utf-8') as f:
+            raw_data = json.load(f)
+
+        self.macros = [Macro(**item) for item in raw_data]
+        print(f"[Structure] Loaded {len(self.macros)} macros.")
