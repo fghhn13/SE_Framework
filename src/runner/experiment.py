@@ -8,15 +8,15 @@ from src.structure.macro import MacroStore
 from src.structure.discovery import MacroDiscovery
 from src.agents.random_agent import RandomAgent
 from src.agents.macro_agent import MacroAgent
-
-
+from src.io.logger import DataLogger
+from src.agents.factory import AgentFactory
 class ExperimentRunner:
     """
     实验运行器。
     负责组装所有组件，并执行主循环。
     """
 
-    def __init__(self, config: Config, agent_id: str = "default_agent"):
+    def __init__(self, config: Config, agent_id: str = "default_agent", agent_type: str = "macro"):
         self.config = config
         self.agent_id = agent_id
 
@@ -39,12 +39,13 @@ class ExperimentRunner:
         self.macro_file = os.path.join(self.agent_dir, "macros.json")
 
         # --- 关键：加载旧档 ---
-        print(f"📂 Agent Profile: {self.agent_id}")
+        print(f"📂 Agent Profile: {self.agent_id} ({agent_type})")  # 打印类型
         self.memory.load(self.memory_file)
         self.macro_store.load(self.macro_file)
 
         # 3. 初始化 Agent
-        self.agent = MacroAgent(config, self.memory, self.macro_store)
+        self.agent = AgentFactory.create_agent(agent_type, config, self.memory, self.macro_store)
+        self.logger = DataLogger(log_dir=self.agent_dir)
 
     def _load_graph(self, path: str) -> GraphData:
         """加载地图数据"""
@@ -69,8 +70,30 @@ class ExperimentRunner:
         print("-" * 40)
 
         try:
+            # --- 自动计算 start_ep (为了让 CSV 的序号连起来) ---
+            start_ep = 0
+            if os.path.exists(self.logger.filepath):
+                with open(self.logger.filepath, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    # 如果有内容且不止表头
+                    if len(lines) > 1:
+                        last_line = lines[-1].strip()
+                        if last_line:
+                            try:
+                                # CSV 格式: episode, success, cost...
+                                # 我们取第一个逗号前的数字
+                                last_ep_str = last_line.split(',')[0]
+                                start_ep = int(last_ep_str)
+                                print(f"🔄 Resuming from Episode {start_ep}...")
+                            except ValueError:
+                                pass  # 解析失败就从 0 开始
+            # --------------------------------------------------
+
             # --- 主循环开始 ---
             for ep in range(1, self.config.episodes + 1):
+                # 让当前的序号接在上次后面
+                current_ep_num = start_ep + ep
+
                 # 1. 跑一集
                 result = self.agent.run_episode(self.env)
 
@@ -83,12 +106,23 @@ class ExperimentRunner:
 
                 # 3. 触发结构发现
                 self.discovery.discover(self.memory, self.macro_store)
+                current_macro_count = len(self.macro_store.get_all())
 
-                # 4. 打印日志
+                # 4. 记录日志 (使用累加后的序号)
+                self.logger.log_episode(
+                    episode=current_ep_num,
+                    success=result["success"],
+                    cost=result["cost"],
+                    steps=result["steps"],
+                    macro_count=current_macro_count
+                )
+
+                # 5. 打印日志
                 if ep % 10 == 0 or (result["success"] and ep < 5):
-                    macros_count = len(self.macro_store.get_all())
+                    # 打印时显示真实的全局 Episode ID
                     print(
-                        f"Ep {ep:03d} | Cost: {result['cost']:.1f} | Steps: {result['steps']} | Macros: {macros_count}")
+                        f"Ep {current_ep_num:03d} | Cost: {result['cost']:.1f} | Steps: {result['steps']} | Macros: {current_macro_count}")
+
             # --- 主循环结束 ---
 
         except KeyboardInterrupt:
@@ -102,7 +136,6 @@ class ExperimentRunner:
             traceback.print_exc()
 
         finally:
-
             print("\n" + "=" * 40)
             print("💾 Saving Agent State...")
             self.memory.save(self.memory_file)

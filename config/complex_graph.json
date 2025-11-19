@@ -7,7 +7,7 @@
     "type": "macro"
   },
   "runner": {
-    "episodes": 50,
+    "episodes": 200,
     "max_steps": 200
   },
   "log": {

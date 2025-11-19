@@ -119,3 +119,42 @@ python scripts/run_experiment.py --config config/complex_graph.json
         
 
 ---
+### 核心指令
+
+使用 `scripts/run_experiment.py` 启动实验。
+
+**1. 基础运行** (默认地图 0000，默认 Agent)
+
+Bash
+
+```
+python scripts/run_experiment.py
+```
+
+**2. 指定地图与 Agent** (推荐)
+
+Bash
+
+```
+# 在 0001 号地图上训练名为 "proto_unit_01" 的 Agent
+python scripts/run_experiment.py --map 0001 --agent proto_unit_01
+```
+
+**3. 覆盖训练次数**
+
+Bash
+
+```
+# 强行训练 1000 集
+python scripts/run_experiment.py --map 0001 --agent proto_unit_01 --episodes 1000
+```
+
+## 4. 模块说明
+
+|**模块**|**功能**|
+|---|---|
+|`src.envs`|**环境层**: 提供标准化的图环境接口 (Reset/Step)。|
+|`src.agents`|**决策层**: `MacroAgent` 优先使用宏，无宏时随机探索。|
+|`src.memory`|**记忆层**: `PathMemory` 忠实记录所有历史路径。|
+|`src.structure`|**结构层**: `MacroStore` 存储挖掘出的模式；`Discovery` 负责从记忆中提炼宏。|
+|`src.runner`|**控制层**: 管理实验流程、数据流转与自动存档。|

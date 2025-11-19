@@ -19,19 +19,14 @@ from src.runner.experiment import ExperimentRunner
 
 def main():
     # 1. 解析命令行参数
-    parser = argparse.ArgumentParser(description="StructGenesis Experiment Runner")
-    parser.add_argument(
-        "--map",
-        type=str,
-        default="0000",
-        help="The 4-digit Map ID to run (e.g., 0001). Default is 0000."
-    )
-    parser.add_argument(
-        "--episodes",
-        type=int,
-        default=None,
-        help="Override episode count in config."
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--map", type=str, default="0000", help="Map ID")
+    parser.add_argument("--agent", type=str, default="default", help="Agent ID (Name of the folder)")
+
+    # --- 新增参数 ---
+    parser.add_argument("--type", type=str, default="macro", choices=["macro", "random"], help="Agent strategy type")
+
+    parser.add_argument("--episodes", type=int, default=None)
     args = parser.parse_args()
 
     # 2. 构造地图路径
@@ -62,10 +57,14 @@ def main():
 
     # 5. 启动实验
     try:
-        runner = ExperimentRunner(config)
+        # 传入 agent_type
+        runner = ExperimentRunner(
+            config,
+            agent_id=args.agent,
+            agent_type=args.type  # <--- 传入参数
+        )
         runner.run()
     except Exception as e:
-        print(f"\n❌ Unexpected Error: {e}")
         import traceback
         traceback.print_exc()
 
